@@ -390,6 +390,7 @@ class Histogram2D(Artist):
         self._overlay_interpolation = "nearest"
         self._overlay_opacity = 1
         self._overlay_visible = True
+        self._plot_contours = True  # Whether to plot contours
         self._margins = 0
         self._histogram_color_normalization_method = "linear"
         self._overlay_color_normalization_method = "linear"
@@ -826,21 +827,38 @@ class Histogram2D(Artist):
         counts, x_edges, y_edges = self._histogram
         # Replace values below cmin with NaN (to have them transparent)
         counts[counts < self._cmin] = np.nan
-        self._histogram_rgba = self.color_indices_to_rgba(
-            counts.T, is_overlay=False
-        )
-        # Apply bin alpha values to the RGBA array
-        if self._bin_alpha is not None:
-            self._histogram_rgba[..., -1] *= self.bin_alpha.T
-        self._mpl_artists["histogram_image"] = self.ax.imshow(
-            self._histogram_rgba,
-            extent=[x_edges[0], x_edges[-1], y_edges[0], y_edges[-1]],
-            origin="lower",
-            zorder=1,
-            interpolation=self._histogram_interpolation,
-            alpha=1,
-            aspect="auto",
-        )
+        if self._plot_contours:
+            
+            # levels = np.arange(
+            #     self._cmin, np.nanmax(counts) + 1, 1
+            # )
+            self.ax.contour(
+                x_edges[:-1],
+                y_edges[:-1],
+                counts.T,
+                levels=3,
+                origin='lower',
+                cmap=self.histogram_colormap.cmap,
+                extent=[x_edges[0], x_edges[-1], y_edges[0], y_edges[-1]],
+                zorder=3,
+            )
+        else:
+            self._histogram_rgba = self.color_indices_to_rgba(
+                counts.T, is_overlay=False
+            )
+            # Apply bin alpha values to the RGBA array
+            if self._bin_alpha is not None:
+                self._histogram_rgba[..., -1] *= self.bin_alpha.T
+            self._mpl_artists["histogram_image"] = self.ax.imshow(
+                self._histogram_rgba,
+                extent=[x_edges[0], x_edges[-1], y_edges[0], y_edges[-1]],
+                origin="lower",
+                zorder=1,
+                interpolation=self._histogram_interpolation,
+                alpha=1,
+                aspect="auto",
+            )
+        
 
         if force_redraw:
             self.color_indices = 0  # Set default color index      
